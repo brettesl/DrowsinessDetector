@@ -83,14 +83,11 @@ predictor = dlib.shape_predictor(predictor_path)
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 total=0
 alarm=False
-while True:
-    ret, frame = camera.read()
-    
-    if ret == False:
-        print('Failed to capture frame from camera. Check camera index in PiCamera() \n')
-        break
 
-    frame_grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+
+    image = frame.array
+    frame_grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     frame_resized = resize(frame_grey, width=300)
     
 # Ask the detector to find the bounding boxes of each face. The 1 in the
@@ -100,7 +97,7 @@ while True:
     flag = 0 
 	
     if len(dets) == 0:
-        cv2.putText(frame, "Keep your eyes on the road!", (190,250),
+        cv2.putText(image, "Keep your eyes on the road!", (190,250),
             cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 2)
 
     if len(dets) > 0:
@@ -116,31 +113,31 @@ while True:
             leftEyeHull = cv2.convexHull(leftEye)
 	       
             rightEyeHull = cv2.convexHull(rightEye)
-            cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), -1)
-            cv2.drawContours(frame, [leftEyeHull], -1, (0, 0, 255), 1)
+            cv2.drawContours(image, [leftEyeHull], -1, (0, 255, 0), -1)
+            cv2.drawContours(image, [leftEyeHull], -1, (0, 0, 255), 1)
             
-            cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), -1)
-            cv2.drawContours(frame, [rightEyeHull], -1, (0, 0, 255), 1)
+            cv2.drawContours(image, [rightEyeHull], -1, (0, 255, 0), -1)
+            cv2.drawContours(image, [rightEyeHull], -1, (0, 0, 255), 1)
             if ear == 0:
-                cv2.putText(frame, "Please keep your eyes on the road!", (100,250),
+                cv2.putText(image, "Please keep your eyes on the road!", (100,250),
                     cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 255), 2)
             if ear>.28:
                 print (ear)
                 total=0
                 alarm=False
-                cv2.putText(frame, "Eyes Open ", (180, 200),cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 255), 2)
-                cv2.putText(frame, roundEar, (180, 230),cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 1)
+                cv2.putText(image, "Eyes Open ", (180, 200),cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(image, roundEar, (180, 230),cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 1)
             else:
                 total+=1
                 print("Eyes closed for: ", total, " iterations")
-                if total>15:
-                    cv2.putText(frame, "****************ALERT!****************", (100, 150),
+                if total>5:
+                    cv2.putText(image, "****************ALERT!****************", (100, 150),
                         cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 255, 0), 2)
-                    cv2.putText(frame, "****************ALERT!****************", (100, 250),
+                    cv2.putText(image, "****************ALERT!****************", (100, 250),
                         cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 255), 2)
-                    cv2.putText(frame, "****************ALERT!****************", (100,350),
+                    cv2.putText(image, "****************ALERT!****************", (100,350),
                         cv2.FONT_HERSHEY_DUPLEX, 0.7, (255, 0, 0), 2)
-                    cv2.putText(frame, str(total-16), (200, 300),cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
+                    cv2.putText(image, str(total-5), (200, 300),cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
                     if not alarm:
                         alarm=True
                         d=threading.Thread(target=start_sound)
@@ -148,24 +145,15 @@ while True:
                         d.start()
 
                         print ("Eyes have been closed for ", total, " frames show alert!")
-                        cv2.putText(frame, "****************ALERT!****************", (10, 30),cv2.FONT_HERSHEY_SIMPLEX, 1.7, (0, 0, 0), 4)
-                cv2.putText(frame, "Eyes Closed".format(total), (180, 200),cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 255), 2)
-                cv2.putText(frame, roundEar, (180, 230),cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 1)
+                        cv2.putText(image, "****************ALERT!****************", (10, 30),cv2.FONT_HERSHEY_SIMPLEX, 1.7, (0, 0, 0), 4)
+                cv2.putText(image, "Eyes Closed".format(total), (180, 200),cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(image, roundEar, (180, 230),cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 1)
             for (x, y) in shape:
-                cv2.circle(frame, (int(x/ratio), int(y/ratio)), 1, (78, 248, 236), -1)
+                cv2.circle(image, (int(x/ratio), int(y/ratio)), 1, (78, 248, 236), -1)
 
-     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-
-         cv2.imshow("image", Zoom(frame,2))
-         key = cv2.waitKey(1) & 0xFF
-         rawCapture.truncate(0)
-
-         if key == ord("q"):
-             break
-
-#    cv2.imshow("image", Zoom(frame,2))
-
-#    if cv2.waitKey(1) & 0xFF == ord('q'):
-#        cv2.destroyAllWindows()
-#        camera.release()
-#        break
+    
+    cv2.imshow("image", Zoom(image,2))
+    key = cv2.waitKey(1) & 0xFF
+    rawCapture.truncate(0)
+    if key == ord("q"):
+        break
